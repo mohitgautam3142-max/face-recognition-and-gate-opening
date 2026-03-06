@@ -1,26 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Face Recognition Gate System</title>
+
+<title>AI Face Gate System</title>
+
 <link rel="stylesheet" href="style.css">
 
-<script defer src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <script defer src="script.js"></script>
 
 </head>
 
 <body>
 
-<h1>AI Face Recognition Gate</h1>
+<h1>Face Recognition Gate</h1>
 
 <video id="video" width="720" height="560" autoplay muted></video>
 
-<div class="buttons">
+<div>
+
 <button onclick="registerFace()">Register Face</button>
 <button onclick="connectBluetooth()">Connect Bluetooth</button>
+
 </div>
 
-<h2 id="status">Status: Waiting...</h2>
+<h2 id="status">Status: Loading AI Models...</h2>
 
 </body>
 </html>
