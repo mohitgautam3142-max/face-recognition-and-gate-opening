@@ -1,522 +1,334 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>AI Face Gate System - TruView IP Cam</title>
+<title>AI Face Gate System - TruView</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
   :root {
-    --cyan: #00ffe7;
-    --green: #39ff14;
-    --red: #ff2d55;
-    --yellow: #ffe600;
-    --bg: #050d1a;
-    --panel: #0a1628;
+    --cyan: #00ffe7; --green: #39ff14; --red: #ff2d55;
+    --yellow: #ffe600; --bg: #050d1a; --panel: #0a1628;
     --border: rgba(0,255,231,0.25);
   }
-
   body {
-    background: var(--bg);
-    color: white;
+    background: var(--bg); color: white;
     font-family: 'Share Tech Mono', monospace;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    overflow-x: hidden;
+    min-height: 100vh; display: flex;
+    flex-direction: column; align-items: center; overflow-x: hidden;
   }
-
   body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
+    content:''; position:fixed; inset:0;
     background-image:
-      linear-gradient(rgba(0,255,231,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,255,231,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
+      linear-gradient(rgba(0,255,231,0.03) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(0,255,231,0.03) 1px,transparent 1px);
+    background-size:40px 40px; pointer-events:none; z-index:0;
   }
-
-  header {
-    position: relative;
-    z-index: 1;
-    padding: 24px 0 8px;
-    text-align: center;
-  }
-
+  header { position:relative; z-index:1; padding:22px 0 6px; text-align:center; }
   header h1 {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 1.8rem;
-    font-weight: 900;
-    letter-spacing: 6px;
-    color: var(--cyan);
-    text-shadow: 0 0 20px var(--cyan), 0 0 40px rgba(0,255,231,0.3);
+    font-family:'Orbitron',sans-serif; font-size:1.8rem; font-weight:900;
+    letter-spacing:6px; color:var(--cyan);
+    text-shadow:0 0 20px var(--cyan),0 0 40px rgba(0,255,231,0.3);
   }
+  header p { color:rgba(0,255,231,0.5); font-size:0.7rem; letter-spacing:4px; margin-top:4px; }
 
-  header p {
-    color: rgba(0,255,231,0.5);
-    font-size: 0.7rem;
-    letter-spacing: 4px;
-    margin-top: 4px;
+  /* ── Proxy Setup Banner ── */
+  .setup-banner {
+    position:relative; z-index:10;
+    background: linear-gradient(135deg, #0a1628, #0d1f3c);
+    border: 1px solid rgba(255,230,0,0.4);
+    border-radius:6px; padding:16px 20px;
+    margin:10px 16px; max-width:760px; width:calc(100% - 32px);
+    display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap;
   }
+  .setup-banner .icon { font-size:1.4rem; flex-shrink:0; margin-top:2px; }
+  .setup-banner .text { flex:1; min-width:200px; }
+  .setup-banner h3 { font-family:'Orbitron',sans-serif; font-size:0.7rem; letter-spacing:3px; color:var(--yellow); margin-bottom:6px; }
+  .setup-banner p  { font-size:0.62rem; color:rgba(255,255,255,0.6); line-height:1.8; }
+  .setup-banner code {
+    background:rgba(0,255,231,0.08); border:1px solid rgba(0,255,231,0.2);
+    padding:2px 7px; border-radius:3px; color:var(--cyan); font-size:0.65rem;
+  }
+  .banner-close {
+    background:transparent; border:1px solid rgba(255,230,0,0.3);
+    color:var(--yellow); font-family:'Share Tech Mono',monospace;
+    font-size:0.6rem; padding:5px 10px; border-radius:3px; cursor:pointer;
+    letter-spacing:2px; flex-shrink:0; align-self:flex-start;
+  }
+  .banner-close:hover { background:rgba(255,230,0,0.08); }
 
+  /* ── Proxy Config Bar ── */
+  .ip-bar {
+    position:relative; z-index:1;
+    display:flex; align-items:center; gap:10px;
+    background:var(--panel); border:1px solid var(--border);
+    border-radius:4px; padding:10px 14px;
+    margin-bottom:4px; flex-wrap:wrap; justify-content:center;
+    max-width:760px; width:100%;
+  }
+  .ip-bar label { font-size:0.6rem; letter-spacing:3px; color:rgba(0,255,231,0.5); text-transform:uppercase; white-space:nowrap; }
+  .ip-bar input {
+    font-family:'Share Tech Mono',monospace; font-size:0.78rem;
+    background:rgba(0,0,0,0.4); border:1px solid var(--border);
+    color:var(--cyan); padding:6px 10px; border-radius:3px;
+    outline:none; width:220px; letter-spacing:1px;
+  }
+  .ip-bar input:focus { border-color:var(--cyan); box-shadow:0 0 8px rgba(0,255,231,0.2); }
+  .ip-bar select {
+    font-family:'Share Tech Mono',monospace; font-size:0.7rem;
+    background:rgba(0,0,0,0.5); border:1px solid var(--border);
+    color:var(--cyan); padding:6px 8px; border-radius:3px; outline:none; cursor:pointer;
+  }
+  .btn-connect {
+    font-family:'Share Tech Mono',monospace; font-size:0.7rem; letter-spacing:2px;
+    padding:7px 14px; border:1px solid var(--cyan); border-radius:3px;
+    background:transparent; color:var(--cyan); cursor:pointer; text-transform:uppercase; transition:all 0.2s;
+  }
+  .btn-connect:hover { background:rgba(0,255,231,0.08); }
+  .cam-status-dot {
+    width:8px; height:8px; border-radius:50%;
+    background:var(--red); box-shadow:0 0 8px var(--red); transition:all 0.4s; flex-shrink:0;
+  }
+  .cam-status-dot.online { background:var(--green); box-shadow:0 0 8px var(--green); animation:blink 1.5s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* ── Layout ── */
   .main-layout {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    gap: 20px;
-    align-items: flex-start;
-    padding: 16px;
-    flex-wrap: wrap;
-    justify-content: center;
+    position:relative; z-index:1;
+    display:flex; gap:20px; align-items:flex-start;
+    padding:12px 16px; flex-wrap:wrap; justify-content:center;
   }
 
-  /* ── Video Panel ── */
-  .video-panel { position: relative; }
-
+  /* ── Video ── */
   .video-wrapper {
-    position: relative;
-    border: 2px solid var(--cyan);
-    border-radius: 4px;
-    overflow: hidden;
-    box-shadow: 0 0 30px rgba(0,255,231,0.2), inset 0 0 30px rgba(0,255,231,0.03);
-    width: 500px;
-    height: 375px;
-    background: #000;
+    position:relative; border:2px solid var(--cyan); border-radius:4px;
+    overflow:hidden; box-shadow:0 0 30px rgba(0,255,231,0.2);
+    width:500px; height:375px; background:#000;
   }
-
-  /* The img tag for MJPEG stream */
-  #camImg {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-
-  /* Hidden canvas for frame capture */
-  #canvas { display: none; }
-
+  #camImg { width:100%; height:100%; object-fit:cover; display:block; }
+  #canvas { display:none; }
   .video-wrapper::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(
-      0deg, transparent, transparent 2px,
-      rgba(0,255,231,0.015) 2px, rgba(0,255,231,0.015) 4px
-    );
-    pointer-events: none;
-    z-index: 2;
+    content:''; position:absolute; inset:0;
+    background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,231,0.015) 2px,rgba(0,255,231,0.015) 4px);
+    pointer-events:none; z-index:2;
   }
-
-  .corner { position: absolute; width: 20px; height: 20px; z-index: 3; }
+  .corner { position:absolute; width:20px; height:20px; z-index:3; }
   .corner.tl { top:-2px; left:-2px; border-top:3px solid var(--cyan); border-left:3px solid var(--cyan); }
   .corner.tr { top:-2px; right:-2px; border-top:3px solid var(--cyan); border-right:3px solid var(--cyan); }
   .corner.bl { bottom:-2px; left:-2px; border-bottom:3px solid var(--cyan); border-left:3px solid var(--cyan); }
   .corner.br { bottom:-2px; right:-2px; border-bottom:3px solid var(--cyan); border-right:3px solid var(--cyan); }
-
   .reticle {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -55%);
-    width: 150px; height: 185px;
-    border: 2px dashed rgba(0,255,231,0.45);
-    border-radius: 50% 50% 40% 40%;
-    pointer-events: none;
-    z-index: 3;
-    animation: reticle-pulse 2s ease-in-out infinite;
+    position:absolute; top:50%; left:50%;
+    transform:translate(-50%,-55%); width:150px; height:185px;
+    border:2px dashed rgba(0,255,231,0.45); border-radius:50% 50% 40% 40%;
+    pointer-events:none; z-index:3; animation:reticle-pulse 2s ease-in-out infinite;
   }
-
   @keyframes reticle-pulse {
-    0%,100% { border-color: rgba(0,255,231,0.4); }
-    50% { border-color: rgba(0,255,231,0.9); box-shadow: 0 0 14px rgba(0,255,231,0.3); }
+    0%,100%{border-color:rgba(0,255,231,0.4)}
+    50%{border-color:rgba(0,255,231,0.9);box-shadow:0 0 14px rgba(0,255,231,0.3)}
   }
-
   .scan-line {
-    position: absolute;
-    left: 0; right: 0; height: 3px;
-    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-    opacity: 0.6;
-    pointer-events: none;
-    z-index: 4;
-    animation: scan 3s linear infinite;
+    position:absolute; left:0; right:0; height:3px;
+    background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+    opacity:0.6; pointer-events:none; z-index:4; animation:scan 3s linear infinite;
   }
-
-  @keyframes scan {
-    0% { top: 0; opacity: 0.8; }
-    100% { top: 100%; opacity: 0; }
-  }
-
-  .auth-flash {
-    position: absolute; inset: 0;
-    opacity: 0; pointer-events: none; z-index: 5; transition: opacity 0.1s;
-  }
-  .auth-flash.open  { background: rgba(57,255,20,0.15); animation: flash 0.5s forwards; }
-  .auth-flash.closed { background: rgba(255,45,85,0.15); animation: flash 0.5s forwards; }
+  @keyframes scan { 0%{top:0;opacity:0.8} 100%{top:100%;opacity:0} }
+  .auth-flash { position:absolute; inset:0; opacity:0; pointer-events:none; z-index:5; }
+  .auth-flash.open   { background:rgba(57,255,20,0.15);  animation:flash 0.5s forwards; }
+  .auth-flash.closed { background:rgba(255,45,85,0.15);  animation:flash 0.5s forwards; }
   @keyframes flash { 0%{opacity:1} 100%{opacity:0} }
 
-  /* Camera offline overlay */
+  /* Offline overlay */
   .cam-offline {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    background: rgba(5,13,26,0.92);
-    z-index: 6;
-    gap: 10px;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 0.75rem;
-    letter-spacing: 3px;
-    color: var(--red);
-    text-shadow: 0 0 10px var(--red);
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:rgba(5,13,26,0.93); z-index:6; gap:10px;
+    font-family:'Orbitron',sans-serif; font-size:0.7rem; letter-spacing:3px;
+    color:var(--red); text-shadow:0 0 10px var(--red);
   }
-  .cam-offline svg { width: 48px; opacity: 0.7; }
-  .cam-offline.hidden { display: none; }
+  .cam-offline svg { width:44px; opacity:0.7; }
+  .cam-offline.hidden { display:none; }
 
-  /* ── IP Config Bar ── */
-  .ip-bar {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 10px 14px;
-    margin-bottom: 4px;
-    flex-wrap: wrap;
-    justify-content: center;
-    max-width: 740px;
-    width: 100%;
-  }
-
-  .ip-bar label {
-    font-size: 0.6rem;
-    letter-spacing: 3px;
-    color: rgba(0,255,231,0.5);
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-
-  .ip-bar input {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.8rem;
-    background: rgba(0,0,0,0.4);
-    border: 1px solid var(--border);
-    color: var(--cyan);
-    padding: 6px 10px;
-    border-radius: 3px;
-    outline: none;
-    width: 200px;
-    letter-spacing: 1px;
-  }
-
-  .ip-bar input:focus { border-color: var(--cyan); box-shadow: 0 0 8px rgba(0,255,231,0.2); }
-
-  .ip-bar select {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.72rem;
-    background: rgba(0,0,0,0.5);
-    border: 1px solid var(--border);
-    color: var(--cyan);
-    padding: 6px 8px;
-    border-radius: 3px;
-    outline: none;
-    cursor: pointer;
-  }
-
-  .btn-connect {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.7rem;
-    letter-spacing: 2px;
-    padding: 7px 14px;
-    border: 1px solid var(--cyan);
-    border-radius: 3px;
-    background: transparent;
-    color: var(--cyan);
-    cursor: pointer;
-    text-transform: uppercase;
-    transition: all 0.2s;
-  }
-  .btn-connect:hover { background: rgba(0,255,231,0.08); }
-
-  .cam-status-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--red);
-    box-shadow: 0 0 8px var(--red);
-    transition: all 0.4s;
-    flex-shrink: 0;
-  }
-  .cam-status-dot.online { background: var(--green); box-shadow: 0 0 8px var(--green); animation: blink 1.5s infinite; }
-
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-
-  /* ── Right Panel ── */
-  .right-panel { display: flex; flex-direction: column; gap: 14px; width: 240px; }
-
-  .info-box {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 14px;
-  }
-
-  .info-box > label {
-    font-size: 0.58rem;
-    letter-spacing: 3px;
-    color: rgba(0,255,231,0.5);
-    text-transform: uppercase;
-    display: block;
-    margin-bottom: 8px;
-  }
-
+  /* ── Right panel ── */
+  .right-panel { display:flex; flex-direction:column; gap:14px; width:240px; }
+  .info-box { background:var(--panel); border:1px solid var(--border); border-radius:4px; padding:14px; }
+  .info-box > label { font-size:0.58rem; letter-spacing:3px; color:rgba(0,255,231,0.5); text-transform:uppercase; display:block; margin-bottom:8px; }
   #status {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 0.78rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-    padding: 12px;
-    border-radius: 4px;
-    text-align: center;
-    background: rgba(0,0,0,0.3);
-    border: 1px solid rgba(0,255,231,0.2);
-    color: var(--yellow);
-    transition: all 0.3s;
-    text-shadow: 0 0 10px currentColor;
+    font-family:'Orbitron',sans-serif; font-size:0.75rem; font-weight:700;
+    letter-spacing:2px; padding:12px; border-radius:4px; text-align:center;
+    background:rgba(0,0,0,0.3); border:1px solid rgba(0,255,231,0.2);
+    color:var(--yellow); transition:all 0.3s; text-shadow:0 0 10px currentColor;
   }
-  #status.open        { color: var(--green); border-color: var(--green); box-shadow: 0 0 20px rgba(57,255,20,0.2); background: rgba(57,255,20,0.05); }
-  #status.denied      { color: var(--red);   border-color: var(--red);   box-shadow: 0 0 20px rgba(255,45,85,0.2); background: rgba(255,45,85,0.05); }
-
-  .meter-label { display: flex; justify-content: space-between; font-size: 0.6rem; color: rgba(0,255,231,0.5); letter-spacing: 2px; margin-bottom: 6px; }
-  .meter-bar { height: 8px; background: rgba(0,0,0,0.5); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
-  .meter-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--red), var(--yellow), var(--green)); border-radius: 4px; transition: width 0.5s ease; }
-
-  .btn-group { display: flex; flex-direction: column; gap: 8px; }
-
+  #status.open   { color:var(--green); border-color:var(--green); box-shadow:0 0 20px rgba(57,255,20,0.2);  background:rgba(57,255,20,0.05); }
+  #status.denied { color:var(--red);   border-color:var(--red);   box-shadow:0 0 20px rgba(255,45,85,0.2);  background:rgba(255,45,85,0.05); }
+  .meter-label { display:flex; justify-content:space-between; font-size:0.6rem; color:rgba(0,255,231,0.5); letter-spacing:2px; margin-bottom:6px; }
+  .meter-bar { height:8px; background:rgba(0,0,0,0.5); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+  .meter-fill { height:100%; width:0%; background:linear-gradient(90deg,var(--red),var(--yellow),var(--green)); border-radius:4px; transition:width 0.5s ease; }
+  .btn-group { display:flex; flex-direction:column; gap:8px; }
   button.action-btn {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.72rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    padding: 11px 14px;
-    border: 1px solid;
-    border-radius: 3px;
-    cursor: pointer;
-    transition: all 0.2s;
-    background: transparent;
-    position: relative; overflow: hidden;
+    font-family:'Share Tech Mono',monospace; font-size:0.72rem; letter-spacing:2px;
+    text-transform:uppercase; padding:11px 14px; border:1px solid; border-radius:3px;
+    cursor:pointer; transition:all 0.2s; background:transparent; position:relative; overflow:hidden;
   }
   button.action-btn::before { content:''; position:absolute; inset:0; background:currentColor; opacity:0; transition:opacity 0.2s; }
   button.action-btn:hover::before { opacity:0.1; }
-  button.action-btn:active { transform: scale(0.98); }
-
-  .btn-register { color: var(--cyan); border-color: var(--cyan); text-shadow: 0 0 8px var(--cyan); }
-  .btn-register.registered { color: var(--green); border-color: var(--green); text-shadow: 0 0 8px var(--green); }
-  .btn-bt { color: rgba(0,255,231,0.5); border-color: rgba(0,255,231,0.25); }
-
+  button.action-btn:active { transform:scale(0.98); }
+  .btn-register { color:var(--cyan); border-color:var(--cyan); text-shadow:0 0 8px var(--cyan); }
+  .btn-register.registered { color:var(--green); border-color:var(--green); text-shadow:0 0 8px var(--green); }
+  .btn-bt { color:rgba(0,255,231,0.5); border-color:rgba(0,255,231,0.25); }
   #face-badge { display:none; align-items:center; gap:8px; font-size:0.6rem; letter-spacing:2px; color:var(--green); text-shadow:0 0 8px var(--green); }
-  #face-badge.visible { display: flex; }
+  #face-badge.visible { display:flex; }
   .dot { width:7px; height:7px; border-radius:50%; background:var(--green); animation:blink 1.5s ease-in-out infinite; }
-
   input[type=range] { width:100%; accent-color:var(--cyan); cursor:pointer; margin-top:4px; }
   #threshold-val { font-size:0.72rem; color:var(--cyan); float:right; }
-
   #log { font-size:0.62rem; color:rgba(0,255,231,0.45); height:85px; overflow-y:auto; line-height:1.9; }
   #log::-webkit-scrollbar { width:3px; }
   #log::-webkit-scrollbar-thumb { background:var(--border); }
   .log-entry { display:block; }
-  .log-entry.grant { color: rgba(57,255,20,0.75); }
-  .log-entry.deny  { color: rgba(255,45,85,0.65); }
-  .log-entry.info  { color: rgba(0,255,231,0.5); }
+  .log-entry.grant { color:rgba(57,255,20,0.75); }
+  .log-entry.deny  { color:rgba(255,45,85,0.65); }
+  .log-entry.info  { color:rgba(0,255,231,0.5); }
 </style>
 </head>
 <body>
 
 <header>
   <h1>⬡ Face Gate System</h1>
-  <p>TRUVIEW IP CAMERA — BIOMETRIC ACCESS CONTROL v2.0</p>
+  <p>TRUVIEW IP CAMERA — GITHUB PAGES MODE</p>
 </header>
 
-<!-- IP Config Bar -->
+<!-- Setup Instructions Banner -->
+<div class="setup-banner" id="setupBanner">
+  <div class="icon">⚡</div>
+  <div class="text">
+    <h3>One-Time Setup Required</h3>
+    <p>
+      GitHub Pages is <code>https://</code> so it can't reach your camera directly.
+      You need to run the <b>proxy.js</b> server on your PC first:<br><br>
+      1. Install <a href="https://nodejs.org" target="_blank" style="color:var(--cyan)">Node.js</a> if you haven't<br>
+      2. Open terminal in the folder with <code>proxy.js</code><br>
+      3. Run: <code>node proxy.js</code><br>
+      4. Then click <b>Connect</b> below — proxy default is <code>http://localhost:3000</code>
+    </p>
+  </div>
+  <button class="banner-close" onclick="document.getElementById('setupBanner').style.display='none'">✕ HIDE</button>
+</div>
+
+<!-- Proxy Config Bar -->
 <div class="ip-bar">
-  <label>Camera IP</label>
-  <input type="text" id="ipInput" value="192.168.43.100" placeholder="e.g. 192.168.43.100">
-
-  <label>Stream</label>
-  <select id="streamSelect">
-    <option value="/videostream.cgi">MJPEG /videostream.cgi</option>
-    <option value="/mjpeg/1">MJPEG /mjpeg/1</option>
-    <option value="/video.mjpeg">/video.mjpeg</option>
-    <option value="/cgi-bin/mjpeg">/cgi-bin/mjpeg</option>
-    <option value="/stream">MJPEG /stream</option>
-    <option value="/live">MJPEG /live</option>
-    <option value="/snapshot.cgi" id="snapshotOpt">Snapshot /snapshot.cgi</option>
-    <option value="custom">Custom URL...</option>
+  <label>Proxy URL</label>
+  <input type="text" id="proxyInput" value="http://localhost:3000" placeholder="http://localhost:3000">
+  <label>Mode</label>
+  <select id="modeSelect">
+    <option value="mjpeg">MJPEG Stream</option>
+    <option value="snapshot">Snapshot Poll</option>
   </select>
-
-  <input type="text" id="customUrl" placeholder="Full custom URL" style="display:none; width:240px;">
   <div class="cam-status-dot" id="camDot"></div>
   <button class="btn-connect" onclick="connectCamera()">Connect</button>
 </div>
 
 <div class="main-layout">
-
   <div class="video-panel">
-    <div class="video-wrapper" id="videoWrapper">
-      <div class="corner tl"></div>
-      <div class="corner tr"></div>
-      <div class="corner bl"></div>
-      <div class="corner br"></div>
+    <div class="video-wrapper">
+      <div class="corner tl"></div><div class="corner tr"></div>
+      <div class="corner bl"></div><div class="corner br"></div>
       <div class="reticle"></div>
       <div class="scan-line"></div>
       <div class="auth-flash" id="authFlash"></div>
-
-      <!-- MJPEG / snapshot image -->
       <img id="camImg" src="" alt="" crossorigin="anonymous">
-
-      <!-- Hidden canvas for pixel capture -->
       <canvas id="canvas" width="500" height="375"></canvas>
-
       <div class="cam-offline" id="camOffline">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.89L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
-          <line x1="2" y1="2" x2="22" y2="22" stroke="currentColor"/>
+          <line x1="2" y1="2" x2="22" y2="22"/>
         </svg>
-        <span id="offlineMsg">CAMERA OFFLINE</span>
-        <span style="font-size:0.55rem; color:rgba(255,45,85,0.6); letter-spacing:2px;">Check IP / network</span>
+        <span id="offlineMsg">PROXY NOT RUNNING</span>
+        <span style="font-size:0.52rem;color:rgba(255,45,85,0.6);letter-spacing:2px;">Run: node proxy.js</span>
       </div>
     </div>
   </div>
 
   <div class="right-panel">
-
-    <div class="info-box">
-      <label>Gate Status</label>
-      <div id="status">AWAITING CAMERA</div>
-    </div>
-
+    <div class="info-box"><label>Gate Status</label><div id="status">AWAITING PROXY</div></div>
     <div class="info-box">
       <label>Match Confidence</label>
-      <div class="meter-label">
-        <span>LOW</span>
-        <span id="conf-pct">—</span>
-        <span>HIGH</span>
-      </div>
+      <div class="meter-label"><span>LOW</span><span id="conf-pct">—</span><span>HIGH</span></div>
       <div class="meter-bar"><div class="meter-fill" id="meterFill"></div></div>
     </div>
-
     <div class="info-box">
       <label>Sensitivity Threshold</label>
       <span id="threshold-val">50</span>
       <input type="range" id="thresholdSlider" min="20" max="80" value="50"
         oninput="document.getElementById('threshold-val').innerText=this.value">
     </div>
-
     <div class="info-box btn-group">
       <label>Controls</label>
       <button class="action-btn btn-register" id="registerBtn" onclick="registerFace()">[ Register Face ]</button>
       <div id="face-badge"><div class="dot"></div> FACE ENROLLED</div>
       <button class="action-btn btn-bt" onclick="connectBluetooth()">[ Connect Bluetooth ]</button>
     </div>
-
-    <div class="info-box">
-      <label>Activity Log</label>
-      <div id="log"></div>
-    </div>
-
+    <div class="info-box"><label>Activity Log</label><div id="log"></div></div>
   </div>
 </div>
 
 <script>
-/* ════════════════════════════════════════════
-   ELEMENTS
-════════════════════════════════════════════ */
-const camImg       = document.getElementById("camImg");
-const canvas       = document.getElementById("canvas");
-const ctx          = canvas.getContext("2d");
-const statusEl     = document.getElementById("status");
-const meterFill    = document.getElementById("meterFill");
-const confPct      = document.getElementById("conf-pct");
-const authFlash    = document.getElementById("authFlash");
-const logEl        = document.getElementById("log");
-const registerBtn  = document.getElementById("registerBtn");
-const faceBadge    = document.getElementById("face-badge");
-const slider       = document.getElementById("thresholdSlider");
-const camDot       = document.getElementById("camDot");
-const camOffline   = document.getElementById("camOffline");
-const offlineMsg   = document.getElementById("offlineMsg");
-const ipInput      = document.getElementById("ipInput");
-const streamSelect = document.getElementById("streamSelect");
-const customUrlEl  = document.getElementById("customUrl");
+const camImg      = document.getElementById("camImg");
+const canvas      = document.getElementById("canvas");
+const ctx         = canvas.getContext("2d");
+const statusEl    = document.getElementById("status");
+const meterFill   = document.getElementById("meterFill");
+const confPct     = document.getElementById("conf-pct");
+const authFlash   = document.getElementById("authFlash");
+const logEl       = document.getElementById("log");
+const registerBtn = document.getElementById("registerBtn");
+const faceBadge   = document.getElementById("face-badge");
+const slider      = document.getElementById("thresholdSlider");
+const camDot      = document.getElementById("camDot");
+const camOffline  = document.getElementById("camOffline");
+const offlineMsg  = document.getElementById("offlineMsg");
+const proxyInput  = document.getElementById("proxyInput");
+const modeSelect  = document.getElementById("modeSelect");
 
 let registeredDescriptor = null;
 let bluetoothDevice      = null;
 let cameraOnline         = false;
-let snapshotMode         = false;   // true when using snapshot polling
 let snapshotInterval     = null;
 
-/* ════════════════════════════════════════════
-   STREAM SELECT — show custom input if needed
-════════════════════════════════════════════ */
-streamSelect.addEventListener("change", () => {
-  customUrlEl.style.display = streamSelect.value === "custom" ? "inline-block" : "none";
-});
-
-/* ════════════════════════════════════════════
-   CAMERA CONNECTION
-   TruView cameras typically expose:
-     • MJPEG stream  : http://<ip>/videostream.cgi  (or /mjpeg/1)
-     • Snapshot      : http://<ip>/snapshot.cgi
-   We load the chosen URL into <img>.
-   For snapshot mode we poll every 200 ms.
-════════════════════════════════════════════ */
-function buildStreamUrl() {
-  const ip   = ipInput.value.trim();
-  const path = streamSelect.value;
-
-  if (path === "custom") return customUrlEl.value.trim();
-  return `http://${ip}${path}`;
-}
-
+/* ── Connect to proxy ──────────────────────────────── */
 function connectCamera() {
-  // Clear previous snapshot interval
   if (snapshotInterval) { clearInterval(snapshotInterval); snapshotInterval = null; }
 
-  const url = buildStreamUrl();
-  snapshotMode = streamSelect.value === "/snapshot.cgi" || streamSelect.value === "custom";
+  const base = proxyInput.value.trim().replace(/\/$/, "");
+  const mode = modeSelect.value;
 
-  addLog(`Connecting → ${url}`, "info");
+  addLog(`Connecting via proxy → ${base}`, "info");
   offlineMsg.textContent = "CONNECTING...";
   camOffline.classList.remove("hidden");
   camDot.classList.remove("online");
   cameraOnline = false;
   setStatus("CONNECTING...", "");
 
-  if (snapshotMode) {
-    // Poll snapshot every 200 ms
-    loadSnapshot(url);
-    snapshotInterval = setInterval(() => loadSnapshot(url), 200);
+  if (mode === "snapshot") {
+    // Poll snapshot every 250 ms
+    pollSnapshot(base);
+    snapshotInterval = setInterval(() => pollSnapshot(base), 250);
   } else {
-    // MJPEG: set src directly — browser handles the stream
+    // MJPEG stream — set img src to proxy /stream endpoint
     camImg.src = "";
-    camImg.src = url + (url.includes("?") ? "&" : "?") + "_t=" + Date.now();
+    setTimeout(() => {
+      camImg.src = `${base}/stream?_t=${Date.now()}`;
+    }, 50);
   }
 }
 
-function loadSnapshot(url) {
+function pollSnapshot(base) {
   const tmp = new Image();
   tmp.crossOrigin = "anonymous";
-  tmp.onload = () => {
-    camImg.src = tmp.src;
-    onCameraOnline();
-  };
+  tmp.onload = () => { camImg.src = tmp.src; onCameraOnline(); };
   tmp.onerror = onCameraOffline;
-  tmp.src = url + "?_t=" + Date.now();
+  tmp.src = `${base}/snapshot?_t=${Date.now()}`;
 }
 
-camImg.onload = onCameraOnline;
+camImg.onload  = onCameraOnline;
 camImg.onerror = onCameraOffline;
 
 function onCameraOnline() {
@@ -525,177 +337,127 @@ function onCameraOnline() {
     camOffline.classList.add("hidden");
     camDot.classList.add("online");
     setStatus("CAMERA LIVE — REGISTER FACE", "");
-    addLog("Camera online ✓", "grant");
+    addLog("Camera online via proxy ✓", "grant");
   }
 }
 
 function onCameraOffline() {
+  if (modeSelect.value === "snapshot") return; // errors are frequent in polling, handled by retry
   cameraOnline = false;
   camOffline.classList.remove("hidden");
-  offlineMsg.textContent = "CAMERA OFFLINE";
+  offlineMsg.textContent = "PROXY NOT RUNNING";
   camDot.classList.remove("online");
-  setStatus("CAMERA OFFLINE", "denied");
-  if (!snapshotMode) addLog("Camera connection failed", "deny");
+  setStatus("PROXY OFFLINE", "denied");
+  addLog("Cannot reach proxy — is node proxy.js running?", "deny");
 }
 
-/* Auto-connect on load */
-connectCamera();
-
-/* ════════════════════════════════════════════
-   FEATURE EXTRACTION  (histogram-based)
-   Captures the current <img> frame onto the
-   hidden canvas, then extracts a compact
-   brightness + hue histogram from the centre
-   crop — stable across lighting & minor shifts.
-════════════════════════════════════════════ */
+/* ── Feature extraction ────────────────────────────── */
 function extractDescriptor() {
   ctx.drawImage(camImg, 0, 0, canvas.width, canvas.height);
+  const cx=canvas.width/2, cy=canvas.height/2, cw=200, ch=240;
+  const d = ctx.getImageData(cx-cw/2, cy-ch/2, cw, ch).data;
+  const lumaBins=new Float32Array(32), hueBins=new Float32Array(16);
+  const total=d.length/4;
 
-  const cx = Math.floor(canvas.width  / 2);
-  const cy = Math.floor(canvas.height / 2);
-  const cw = 200, ch = 240;
-  const imageData = ctx.getImageData(cx - cw/2, cy - ch/2, cw, ch);
-  const data = imageData.data;
-
-  const lumaBins = new Float32Array(32);
-  const hueBins  = new Float32Array(16);
-  const total    = data.length / 4;
-
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i], g = data[i+1], b = data[i+2];
-    const luma = (0.299*r + 0.587*g + 0.114*b) / 255;
-    lumaBins[Math.min(31, Math.floor(luma * 32))]++;
-
-    const max = Math.max(r,g,b), min = Math.min(r,g,b), delta = max - min;
-    if (delta > 20) {
-      let hue = 0;
-      if      (max===r) hue = ((g-b)/delta)%6;
-      else if (max===g) hue = (b-r)/delta+2;
-      else              hue = (r-g)/delta+4;
-      hue = ((hue*60)+360)%360;
-      hueBins[Math.min(15, Math.floor(hue/22.5))]++;
+  for (let i=0;i<d.length;i+=4) {
+    const r=d[i],g=d[i+1],b=d[i+2];
+    const luma=(0.299*r+0.587*g+0.114*b)/255;
+    lumaBins[Math.min(31,Math.floor(luma*32))]++;
+    const max=Math.max(r,g,b),min=Math.min(r,g,b),delta=max-min;
+    if(delta>20){
+      let h=0;
+      if(max===r)h=((g-b)/delta)%6;
+      else if(max===g)h=(b-r)/delta+2;
+      else h=(r-g)/delta+4;
+      h=((h*60)+360)%360;
+      hueBins[Math.min(15,Math.floor(h/22.5))]++;
     }
   }
-
-  for (let i=0; i<lumaBins.length; i++) lumaBins[i] /= total;
-  for (let i=0; i<hueBins.length;  i++) hueBins[i]  /= total;
-
-  return { lumaBins, hueBins };
+  for(let i=0;i<lumaBins.length;i++)lumaBins[i]/=total;
+  for(let i=0;i<hueBins.length;i++)hueBins[i]/=total;
+  return {lumaBins,hueBins};
 }
 
-function compareDescriptors(a, b) {
-  let lSim=0, hSim=0;
-  for (let i=0; i<a.lumaBins.length; i++) lSim += Math.min(a.lumaBins[i], b.lumaBins[i]);
-  for (let i=0; i<a.hueBins.length;  i++) hSim += Math.min(a.hueBins[i],  b.hueBins[i]);
-  return lSim*0.6 + hSim*0.4;
+function compareDescriptors(a,b){
+  let l=0,h=0;
+  for(let i=0;i<a.lumaBins.length;i++)l+=Math.min(a.lumaBins[i],b.lumaBins[i]);
+  for(let i=0;i<a.hueBins.length;i++)h+=Math.min(a.hueBins[i],b.hueBins[i]);
+  return l*0.6+h*0.4;
 }
 
-/* ════════════════════════════════════════════
-   REGISTER FACE
-════════════════════════════════════════════ */
-function registerFace() {
-  if (!cameraOnline) {
-    addLog("Cannot register — camera offline", "deny");
-    return;
-  }
-  try {
-    registeredDescriptor = extractDescriptor();
-    localStorage.setItem("faceDesc", JSON.stringify({
-      luma: Array.from(registeredDescriptor.lumaBins),
-      hue:  Array.from(registeredDescriptor.hueBins)
+/* ── Register ──────────────────────────────────────── */
+function registerFace(){
+  if(!cameraOnline){addLog("Cannot register — camera offline","deny");return;}
+  try{
+    registeredDescriptor=extractDescriptor();
+    localStorage.setItem("faceDesc",JSON.stringify({
+      luma:Array.from(registeredDescriptor.lumaBins),
+      hue:Array.from(registeredDescriptor.hueBins)
     }));
-    setStatus("FACE ENROLLED ✓", "open");
+    setStatus("FACE ENROLLED ✓","open");
     registerBtn.classList.add("registered");
-    registerBtn.textContent = "[ Re-Register Face ]";
+    registerBtn.textContent="[ Re-Register Face ]";
     faceBadge.classList.add("visible");
-    addLog("Face enrolled successfully", "grant");
-    setTimeout(() => setStatus("SCANNING...", ""), 1800);
-  } catch(e) {
-    addLog("Capture failed — try again", "deny");
-  }
+    addLog("Face enrolled successfully","grant");
+    setTimeout(()=>setStatus("SCANNING...",""),1800);
+  }catch(e){addLog("Capture failed — try again","deny");}
 }
 
-/* Load saved face */
-(function loadFace() {
-  const raw = localStorage.getItem("faceDesc");
-  if (!raw) return;
-  try {
-    const p = JSON.parse(raw);
-    registeredDescriptor = {
-      lumaBins: new Float32Array(p.luma),
-      hueBins:  new Float32Array(p.hue)
-    };
+(function loadFace(){
+  const raw=localStorage.getItem("faceDesc");
+  if(!raw)return;
+  try{
+    const p=JSON.parse(raw);
+    registeredDescriptor={lumaBins:new Float32Array(p.luma),hueBins:new Float32Array(p.hue)};
     faceBadge.classList.add("visible");
     registerBtn.classList.add("registered");
-    registerBtn.textContent = "[ Re-Register Face ]";
-    addLog("Saved face profile loaded", "info");
-  } catch(e) { localStorage.removeItem("faceDesc"); }
+    registerBtn.textContent="[ Re-Register Face ]";
+    addLog("Saved face profile loaded","info");
+  }catch(e){localStorage.removeItem("faceDesc");}
 })();
 
-/* ════════════════════════════════════════════
-   RECOGNITION LOOP  (runs every 1.5 s)
-════════════════════════════════════════════ */
-function recognizeFace() {
-  if (!registeredDescriptor || !cameraOnline) return;
-
-  try {
-    const current    = extractDescriptor();
-    const similarity = compareDescriptors(current, registeredDescriptor);
-    const threshold  = parseInt(slider.value) / 100;
-    const pct        = Math.round(similarity * 100);
-
-    meterFill.style.width = pct + "%";
-    confPct.textContent   = pct + "%";
-
-    if (similarity >= threshold) {
-      setStatus("✓ GATE OPEN — AUTHORIZED", "open");
-      authFlash.className = "auth-flash open";
+/* ── Recognition loop ──────────────────────────────── */
+function recognizeFace(){
+  if(!registeredDescriptor||!cameraOnline)return;
+  try{
+    const sim=compareDescriptors(extractDescriptor(),registeredDescriptor);
+    const pct=Math.round(sim*100);
+    const threshold=parseInt(slider.value)/100;
+    meterFill.style.width=pct+"%";
+    confPct.textContent=pct+"%";
+    if(sim>=threshold){
+      setStatus("✓ GATE OPEN — AUTHORIZED","open");
+      authFlash.className="auth-flash open";
       sendBluetooth("1");
-      if (Math.random() < 0.12) addLog(`Access GRANTED (${pct}%)`, "grant");
-    } else {
-      setStatus("✗ UNKNOWN — ACCESS DENIED", "denied");
-      authFlash.className = "auth-flash closed";
+      if(Math.random()<0.12)addLog(`Access GRANTED (${pct}%)`, "grant");
+    }else{
+      setStatus("✗ UNKNOWN — ACCESS DENIED","denied");
+      authFlash.className="auth-flash closed";
       sendBluetooth("0");
-      if (Math.random() < 0.07) addLog(`Access DENIED (${pct}%)`, "deny");
+      if(Math.random()<0.07)addLog(`Access DENIED (${pct}%)`,"deny");
     }
-    setTimeout(() => { authFlash.className = "auth-flash"; }, 500);
-  } catch(e) { /* frame not ready */ }
+    setTimeout(()=>{authFlash.className="auth-flash";},500);
+  }catch(e){}
+}
+setInterval(recognizeFace,1500);
+
+/* ── Helpers ───────────────────────────────────────── */
+function setStatus(msg,cls){statusEl.textContent=msg;statusEl.className=cls||"";}
+function addLog(msg,type){
+  const now=new Date().toLocaleTimeString();
+  const e=document.createElement("span");
+  e.className="log-entry "+(type||"");
+  e.textContent=`[${now}] ${msg}`;
+  logEl.prepend(e);
 }
 
-setInterval(recognizeFace, 1500);
-
-/* ════════════════════════════════════════════
-   HELPERS
-════════════════════════════════════════════ */
-function setStatus(msg, cls) {
-  statusEl.textContent = msg;
-  statusEl.className   = cls || "";
+async function connectBluetooth(){
+  try{
+    bluetoothDevice=await navigator.bluetooth.requestDevice({acceptAllDevices:true});
+    addLog("Bluetooth paired ✓","grant");
+  }catch{addLog("Bluetooth pairing failed","deny");}
 }
-
-function addLog(msg, type) {
-  const now   = new Date().toLocaleTimeString();
-  const entry = document.createElement("span");
-  entry.className   = "log-entry " + (type||"");
-  entry.textContent = `[${now}] ${msg}`;
-  logEl.prepend(entry);
-}
-
-/* ════════════════════════════════════════════
-   BLUETOOTH
-════════════════════════════════════════════ */
-async function connectBluetooth() {
-  try {
-    bluetoothDevice = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
-    addLog("Bluetooth paired ✓", "grant");
-  } catch {
-    addLog("Bluetooth pairing failed", "deny");
-  }
-}
-
-function sendBluetooth(value) {
-  if (!bluetoothDevice) return;
-  console.log("BT →", value);
-}
+function sendBluetooth(v){if(!bluetoothDevice)return;console.log("BT →",v);}
 </script>
 </body>
 </html>
