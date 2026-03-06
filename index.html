@@ -4,10 +4,38 @@
 
 <title>AI Face Gate System</title>
 
-<link rel="stylesheet" href="style.css">
+<style>
 
-<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-<script defer src="script.js"></script>
+body{
+background:#0f172a;
+color:white;
+text-align:center;
+font-family:Arial;
+}
+
+video{
+border:4px solid cyan;
+border-radius:10px;
+margin-top:20px;
+}
+
+button{
+padding:12px 25px;
+margin:10px;
+font-size:16px;
+background:#22c55e;
+border:none;
+border-radius:8px;
+cursor:pointer;
+}
+
+#status{
+margin-top:20px;
+font-size:24px;
+color:yellow;
+}
+
+</style>
 
 </head>
 
@@ -15,16 +43,142 @@
 
 <h1>Face Recognition Gate</h1>
 
-<video id="video" width="720" height="560" autoplay muted></video>
+<video id="video" width="640" height="480" autoplay></video>
+<canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
 
-<div>
+<br>
 
 <button onclick="registerFace()">Register Face</button>
 <button onclick="connectBluetooth()">Connect Bluetooth</button>
 
-</div>
+<h2 id="status">Status: Starting Camera...</h2>
 
-<h2 id="status">Status: Loading AI Models...</h2>
+<script>
+
+const video = document.getElementById("video")
+const canvas = document.getElementById("canvas")
+const ctx = canvas.getContext("2d")
+const statusText = document.getElementById("status")
+
+let registeredFace = null
+let bluetoothDevice = null
+
+async function startCamera(){
+
+const stream = await navigator.mediaDevices.getUserMedia({video:true})
+video.srcObject = stream
+
+statusText.innerText = "Camera Ready"
+
+}
+
+startCamera()
+
+function captureFace(){
+
+ctx.drawImage(video,0,0,canvas.width,canvas.height)
+
+let imageData = ctx.getImageData(0,0,canvas.width,canvas.height)
+
+return imageData.data
+
+}
+
+function compareFaces(face1,face2){
+
+let diff = 0
+
+for(let i=0;i<face1.length;i+=100){
+
+diff += Math.abs(face1[i]-face2[i])
+
+}
+
+return diff
+
+}
+
+function registerFace(){
+
+registeredFace = captureFace()
+
+localStorage.setItem("faceData",JSON.stringify(Array.from(registeredFace)))
+
+statusText.innerText = "Face Registered Successfully"
+
+}
+
+function loadFace(){
+
+const data = localStorage.getItem("faceData")
+
+if(data){
+
+registeredFace = new Uint8ClampedArray(JSON.parse(data))
+
+statusText.innerText = "Registered Face Loaded"
+
+}
+
+}
+
+loadFace()
+
+function recognizeFace(){
+
+if(!registeredFace) return
+
+let currentFace = captureFace()
+
+let difference = compareFaces(currentFace,registeredFace)
+
+console.log("Difference:",difference)
+
+if(difference < 50000){
+
+statusText.innerText = "Gate OPEN - Authorized Person"
+
+sendBluetooth("1")
+
+}else{
+
+statusText.innerText = "Unknown Person - Gate Closed"
+
+sendBluetooth("0")
+
+}
+
+}
+
+setInterval(recognizeFace,2000)
+
+async function connectBluetooth(){
+
+try{
+
+bluetoothDevice = await navigator.bluetooth.requestDevice({
+acceptAllDevices:true
+})
+
+statusText.innerText = "Bluetooth Connected"
+
+}catch{
+
+statusText.innerText = "Bluetooth Connection Failed"
+
+}
+
+}
+
+function sendBluetooth(value){
+
+if(!bluetoothDevice) return
+
+console.log("Bluetooth Data:",value)
+
+}
+
+</script>
 
 </body>
 </html>
