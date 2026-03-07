@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>AI Face Gate System</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --cyan: #00ffe7;
+    --green: #39ff14;
+    --red: #ff2d55;
+    --yellow: #ffe600;
+    --bg: #050d1a;
+    --panel: #0a1628;
+    --border: rgba(0,255,231,0.25);
+  }
+
+  body {
+    background: var(--bg);
+    color: white;
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,231,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,231,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    position: relative;
+    z-index: 1;
+    padding: 28px 0 10px;
+    text-align: center;
+  }
+
+  header h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2rem;
+    font-weight: 900;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: var(--cyan);
+    text-shadow: 0 0 20px var(--cyan), 0 0 40px rgba(0,255,231,0.3);
+  }
+
+  header p {
+    color: rgba(0,255,231,0.5);
+    font-size: 0.75rem;
+    letter-spacing: 4px;
+    margin-top: 4px;
+  }
+
+  /* ESP32 IP config bar */
+  .ip-bar {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 16px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 780px;
+    width: 100%;
+  }
+
+  .ip-bar label {
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    color: rgba(0,255,231,0.5);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .ip-bar input {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    color: var(--cyan);
+    padding: 6px 12px;
+    border-radius: 3px;
+    outline: none;
+    width: 180px;
+    letter-spacing: 1px;
+  }
+
+  .ip-bar input:focus { border-color: var(--cyan); box-shadow: 0 0 8px rgba(0,255,231,0.2); }
+
+  .btn-connect {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    padding: 7px 14px;
+    border: 1px solid var(--cyan);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--cyan);
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .btn-connect:hover { background: rgba(0,255,231,0.08); }
+  .btn-connect::before { display: none; }
+
+  .esp-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 8px var(--red);
+    transition: all 0.4s;
+    flex-shrink: 0;
+  }
+  .esp-dot.online { background: var(--green); box-shadow: 0 0 8px var(--green); animation: blink 1.5s infinite; }
+
+  .main-layout {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    padding: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .video-panel { position: relative; }
+
+  .video-wrapper {
+    position: relative;
+    border: 2px solid var(--cyan);
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 0 30px rgba(0,255,231,0.2), inset 0 0 30px rgba(0,255,231,0.03);
+  }
+
+  video {
+    display: block;
+    width: 480px;
+    height: 360px;
+    object-fit: cover;
+  }
+
+  canvas { display: none; }
+
+  .video-wrapper::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,255,231,0.015) 2px, rgba(0,255,231,0.015) 4px
+    );
+    pointer-events: none;
+  }
+
+  .corner { position: absolute; width: 20px; height: 20px; z-index: 2; }
+  .corner.tl { top:-2px; left:-2px; border-top:3px solid var(--cyan); border-left:3px solid var(--cyan); }
+  .corner.tr { top:-2px; right:-2px; border-top:3px solid var(--cyan); border-right:3px solid var(--cyan); }
+  .corner.bl { bottom:-2px; left:-2px; border-bottom:3px solid var(--cyan); border-left:3px solid var(--cyan); }
+  .corner.br { bottom:-2px; right:-2px; border-bottom:3px solid var(--cyan); border-right:3px solid var(--cyan); }
+
+  .reticle {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 160px; height: 200px;
+    border: 2px dashed rgba(0,255,231,0.4);
+    border-radius: 50% 50% 40% 40%;
+    pointer-events: none;
+    z-index: 3;
+    animation: reticle-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes reticle-pulse {
+    0%, 100% { border-color: rgba(0,255,231,0.4); }
+    50% { border-color: rgba(0,255,231,0.8); box-shadow: 0 0 12px rgba(0,255,231,0.3); }
+  }
+
+  .scan-line {
+    position: absolute;
+    left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    opacity: 0.6;
+    pointer-events: none;
+    z-index: 4;
+    animation: scan 3s linear infinite;
+  }
+
+  @keyframes scan {
+    0% { top: 0; opacity: 0.8; }
+    100% { top: 100%; opacity: 0; }
+  }
+
+  .auth-flash {
+    position: absolute; inset: 0;
+    opacity: 0; pointer-events: none; z-index: 5; transition: opacity 0.1s;
+  }
+  .auth-flash.open   { background: rgba(57,255,20,0.15);  opacity: 1; animation: flash 0.5s forwards; }
+  .auth-flash.closed { background: rgba(255,45,85,0.15);  opacity: 1; animation: flash 0.5s forwards; }
+  @keyframes flash { 0%{opacity:1} 100%{opacity:0} }
+
+  .right-panel { display: flex; flex-direction: column; gap: 16px; width: 260px; }
+
+  .info-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+  }
+
+  .info-box label {
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    color: rgba(0,255,231,0.5);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  #status {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    padding: 14px;
+    border-radius: 4px;
+    text-align: center;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(0,255,231,0.2);
+    color: var(--yellow);
+    transition: all 0.3s ease;
+    text-shadow: 0 0 10px currentColor;
+  }
+  #status.open        { color:var(--green); border-color:var(--green); box-shadow:0 0 20px rgba(57,255,20,0.2); background:rgba(57,255,20,0.05); }
+  #status.closed-denied { color:var(--red); border-color:var(--red); box-shadow:0 0 20px rgba(255,45,85,0.2); background:rgba(255,45,85,0.05); }
+
+  .meter-label { display:flex; justify-content:space-between; font-size:0.65rem; color:rgba(0,255,231,0.5); letter-spacing:2px; margin-bottom:6px; }
+  .meter-bar { height:8px; background:rgba(0,0,0,0.5); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+  .meter-fill { height:100%; width:0%; background:linear-gradient(90deg,var(--red),var(--yellow),var(--green)); border-radius:4px; transition:width 0.5s ease; }
+
+  .btn-group { display:flex; flex-direction:column; gap:10px; }
+
+  button {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 13px 16px;
+    border: 1px solid;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    position: relative;
+    overflow: hidden;
+  }
+  button::before { content:''; position:absolute; inset:0; background:currentColor; opacity:0; transition:opacity 0.2s; }
+  button:hover::before { opacity:0.1; }
+  button:active { transform:scale(0.98); }
+
+  .btn-register { color:var(--cyan); border-color:var(--cyan); text-shadow:0 0 8px var(--cyan); box-shadow:0 0 12px rgba(0,255,231,0.1); }
+  .btn-register.registered { color:var(--green); border-color:var(--green); text-shadow:0 0 8px var(--green); }
+
+  #log { font-size:0.65rem; color:rgba(0,255,231,0.45); height:90px; overflow-y:auto; line-height:1.8; }
+  #log::-webkit-scrollbar { width:3px; }
+  #log::-webkit-scrollbar-thumb { background:var(--border); }
+  .log-entry { display:block; }
+  .log-entry.grant { color:rgba(57,255,20,0.7); }
+  .log-entry.deny  { color:rgba(255,45,85,0.6); }
+
+  input[type=range] { width:100%; accent-color:var(--cyan); cursor:pointer; margin-top:4px; }
+  #threshold-val { font-size:0.75rem; color:var(--cyan); float:right; }
+
+  #face-badge { display:none; align-items:center; gap:8px; font-size:0.65rem; letter-spacing:2px; color:var(--green); text-shadow:0 0 8px var(--green); }
+  #face-badge.visible { display:flex; }
+  .dot { width:7px; height:7px; border-radius:50%; background:var(--green); animation:blink 1.5s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  #esp-status-text { font-size:0.65rem; color:rgba(0,255,231,0.5); text-align:center; margin-top:6px; }
+  #esp-status-text.online { color:var(--green); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⬡ Face Gate System</h1>
+  <p>BIOMETRIC ACCESS CONTROL v2.0 — WiFi MODE</p>
+</header>
+
+<!-- ESP32 IP Config -->
+<div class="ip-bar">
+  <label>ESP32 IP</label>
+  <input type="text" id="espIP" placeholder="e.g. 192.168.1.45" value="">
+  <div class="esp-dot" id="espDot"></div>
+  <button class="btn-connect" onclick="checkESP32()">[ Test Connection ]</button>
+</div>
+
+<div class="main-layout">
+
+  <div class="video-panel">
+    <div class="video-wrapper" id="videoWrapper">
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+      <div class="reticle"></div>
+      <div class="scan-line"></div>
+      <div class="auth-flash" id="authFlash"></div>
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="canvas" width="480" height="360"></canvas>
+    </div>
+  </div>
+
+  <div class="right-panel">
+
+    <div class="info-box">
+      <label>Gate Status</label>
+      <div id="status">INITIALIZING...</div>
+      <div id="esp-status-text">ESP32: NOT CONNECTED</div>
+    </div>
+
+    <div class="info-box">
+      <label>Match Confidence</label>
+      <div class="meter-label">
+        <span>LOW</span>
+        <span id="conf-pct">—</span>
+        <span>HIGH</span>
+      </div>
+      <div class="meter-bar"><div class="meter-fill" id="meterFill"></div></div>
+    </div>
+
+    <div class="info-box">
+      <label>Sensitivity Threshold</label>
+      <span id="threshold-val">50</span>
+      <input type="range" id="thresholdSlider" min="20" max="80" value="50"
+        oninput="document.getElementById('threshold-val').innerText=this.value">
+    </div>
+
+    <div class="info-box btn-group">
+      <label>Controls</label>
+      <button class="btn-register" id="registerBtn" onclick="registerFace()">[ Register Face ]</button>
+      <div id="face-badge"><div class="dot"></div> FACE ENROLLED</div>
+    </div>
+
+    <div class="info-box">
+      <label>Activity Log</label>
+      <div id="log"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const video         = document.getElementById("video");
+const canvas        = document.getElementById("canvas");
+const ctx           = canvas.getContext("2d");
+const statusEl      = document.getElementById("status");
+const meterFill     = document.getElementById("meterFill");
+const confPct       = document.getElementById("conf-pct");
+const authFlash     = document.getElementById("authFlash");
+const logEl         = document.getElementById("log");
+const registerBtn   = document.getElementById("registerBtn");
+const faceBadge     = document.getElementById("face-badge");
+const slider        = document.getElementById("thresholdSlider");
+const espDot        = document.getElementById("espDot");
+const espStatusText = document.getElementById("esp-status-text");
+const espIPInput    = document.getElementById("espIP");
+
+let registeredDescriptor = null;
+let esp32Connected = false;
+
+/* ── Camera ─────────────────────────────── */
+async function startCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+    setStatus("CAMERA READY — REGISTER FACE", "");
+  } catch (e) {
+    setStatus("CAMERA ERROR", "closed-denied");
+  }
+}
+startCamera();
+
+/* ── ESP32 Connection ────────────────────── */
+async function checkESP32() {
+  const ip = espIPInput.value.trim();
+  if (!ip) { addLog("Enter ESP32 IP address first", "deny"); return; }
+
+  addLog(`Testing ESP32 at ${ip}...`, "");
+  try {
+    const res = await fetch(`http://${ip}/status`, { signal: AbortSignal.timeout(3000) });
+    const text = await res.text();
+    if (text.includes("ESP32_ONLINE")) {
+      esp32Connected = true;
+      espDot.classList.add("online");
+      espStatusText.textContent = `ESP32: ONLINE (${ip})`;
+      espStatusText.classList.add("online");
+      addLog(`ESP32 connected at ${ip}`, "grant");
+    }
+  } catch (e) {
+    esp32Connected = false;
+    espDot.classList.remove("online");
+    espStatusText.textContent = "ESP32: NOT REACHABLE";
+    espStatusText.classList.remove("online");
+    addLog("ESP32 not reachable — check IP & WiFi", "deny");
+  }
+}
+
+/* ── Send command to ESP32 ───────────────── */
+async function sendToESP32(value) {
+  const ip = espIPInput.value.trim();
+  if (!ip || !esp32Connected) return;
+  try {
+    await fetch(`http://${ip}/gate?state=${value}`, { signal: AbortSignal.timeout(2000) });
+  } catch (e) {
+    // Silent fail — don't spam log
+  }
+}
+
+/* ── Status helpers ──────────────────────── */
+function setStatus(msg, cls) {
+  statusEl.textContent = msg;
+  statusEl.className = cls || "";
+}
+
+function addLog(msg, type) {
+  const now = new Date().toLocaleTimeString();
+  const entry = document.createElement("span");
+  entry.className = "log-entry " + (type || "");
+  entry.textContent = `[${now}] ${msg}`;
+  logEl.prepend(entry);
+}
+
+/* ── Feature extraction ──────────────────── */
+function extractDescriptor() {
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  const cx = Math.floor(canvas.width  / 2);
+  const cy = Math.floor(canvas.height / 2);
+  const cropW = 200, cropH = 240;
+  const x0 = cx - cropW / 2, y0 = cy - cropH / 2;
+
+  const imageData = ctx.getImageData(x0, y0, cropW, cropH);
+  const data = imageData.data;
+
+  const lumaBins = new Float32Array(32);
+  const hueBins  = new Float32Array(16);
+  const total    = data.length / 4;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i], g = data[i+1], b = data[i+2];
+    const luma = (0.299*r + 0.587*g + 0.114*b) / 255;
+    lumaBins[Math.min(31, Math.floor(luma * 32))]++;
+
+    const max = Math.max(r,g,b), min = Math.min(r,g,b), delta = max - min;
+    if (delta > 20) {
+      let hue = 0;
+      if      (max===r) hue = ((g-b)/delta) % 6;
+      else if (max===g) hue = (b-r)/delta + 2;
+      else              hue = (r-g)/delta + 4;
+      hue = ((hue*60)+360) % 360;
+      hueBins[Math.min(15, Math.floor(hue/22.5))]++;
+    }
+  }
+
+  for (let i=0; i<lumaBins.length; i++) lumaBins[i] /= total;
+  for (let i=0; i<hueBins.length;  i++) hueBins[i]  /= total;
+  return { lumaBins, hueBins };
+}
+
+/* ── Histogram similarity ────────────────── */
+function compareDescriptors(a, b) {
+  let lumaSim = 0, hueSim = 0;
+  for (let i=0; i<a.lumaBins.length; i++) lumaSim += Math.min(a.lumaBins[i], b.lumaBins[i]);
+  for (let i=0; i<a.hueBins.length;  i++) hueSim  += Math.min(a.hueBins[i],  b.hueBins[i]);
+  return lumaSim * 0.6 + hueSim * 0.4;
+}
+
+/* ── Register Face ───────────────────────── */
+function registerFace() {
+  registeredDescriptor = extractDescriptor();
+  localStorage.setItem("faceDesc", JSON.stringify({
+    luma: Array.from(registeredDescriptor.lumaBins),
+    hue:  Array.from(registeredDescriptor.hueBins)
+  }));
+  setStatus("FACE ENROLLED ✓", "open");
+  registerBtn.classList.add("registered");
+  registerBtn.textContent = "[ Re-Register Face ]";
+  faceBadge.classList.add("visible");
+  addLog("Face enrolled", "grant");
+  setTimeout(() => setStatus("SCANNING...", ""), 1500);
+}
+
+/* ── Load saved face ─────────────────────── */
+function loadFace() {
+  const raw = localStorage.getItem("faceDesc");
+  if (!raw) return;
+  try {
+    const parsed = JSON.parse(raw);
+    registeredDescriptor = {
+      lumaBins: new Float32Array(parsed.luma),
+      hueBins:  new Float32Array(parsed.hue)
+    };
+    faceBadge.classList.add("visible");
+    registerBtn.classList.add("registered");
+    registerBtn.textContent = "[ Re-Register Face ]";
+    setStatus("FACE LOADED — SCANNING", "");
+    addLog("Saved face loaded", "");
+  } catch(e) {
+    localStorage.removeItem("faceDesc");
+  }
+}
+loadFace();
+
+/* ── Recognition loop ────────────────────── */
+function recognizeFace() {
+  if (!registeredDescriptor) return;
+
+  const current    = extractDescriptor();
+  const similarity = compareDescriptors(current, registeredDescriptor);
+  const threshold  = parseInt(slider.value) / 100;
+  const pct        = Math.round(similarity * 100);
+
+  meterFill.style.width = pct + "%";
+  confPct.textContent   = pct + "%";
+
+  if (similarity >= threshold) {
+    setStatus("✓ GATE OPEN — AUTHORIZED", "open");
+    authFlash.className = "auth-flash open";
+    sendToESP32("1");
+    if (Math.random() < 0.15) addLog(`Access GRANTED (${pct}% match)`, "grant");
+  } else {
+    setStatus("✗ UNKNOWN — ACCESS DENIED", "closed-denied");
+    authFlash.className = "auth-flash closed";
+    sendToESP32("0");
+    if (Math.random() < 0.08) addLog(`Access DENIED (${pct}% match)`, "deny");
+  }
+
+  setTimeout(() => { authFlash.className = "auth-flash"; }, 500);
+}
+
+setInterval(recognizeFace, 1500);
+</script>
+</body>
+</html>
